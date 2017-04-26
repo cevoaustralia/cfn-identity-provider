@@ -28,10 +28,9 @@ configured in the `params.json`. It defaults to `MyProvider`
 
 ## Returned Values from the Custom Resource
 
-The `ProviderCreator` custom resource returns an `Arn` which is the ARN of the Identity Provider.
+The `ProviderCreator` custom resource returns the ARN of the SAML provider as its physical resource ID.
 
-You can use the returned values from the custom resource via the `Fn::GetAtt` or `!GetAtt` intrinsic functions
-of CloudFormation.
+You can simply `Ref` the custom resource to use the SAML provider ARN.
 
 For example:
 
@@ -46,7 +45,7 @@ For example:
         Statement:
           - Effect: Allow
             Principal:
-              Federated: !GetAtt IdentityProvider.Arn
+              Federated: !Ref IdentityProvider
             Action: sts:AssumeRoleWithSAML
             Condition:
               StringEquals:

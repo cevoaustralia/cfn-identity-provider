@@ -43,9 +43,7 @@ Resources:
             except Exception as e:
               return (False, "Cannot create SAML provider: " + str(e))
 
-          def delete_provider(name):
-            # Need to create the ARN from the name
-            arn = "arn:aws:iam::" + str(${AWS::AccountId}) + ":saml-provider/" + name
+          def delete_provider(arn):
             try:
               resp = iam.delete_saml_provider(SAMLProviderArn=arn)
               return (True, "SAML provider with ARN " + arn + " deleted")
@@ -58,7 +56,7 @@ Resources:
             except Exception as e:
               return (False, "Cannot delete SAML provider with ARN " + arn + ": " + str(e))
 
-          def update_provider(name, doc):
+          def update_provider(arn, doc):
             # Need to create the ARN from the name
             arn = "arn:aws:iam::" + str(${AWS::AccountId}) + ":saml-provider/" + name
             try:
@@ -70,23 +68,26 @@ Resources:
           def lambda_handler(event, context):
             provider_xml = event['ResourceProperties']['Metadata']
             provider_name = event['ResourceProperties']['Name']
+            # create a default ARN from the name; will be overwritten if we are creating
+            provider_arn = "arn:aws:iam::" + str(${AWS::AccountId}) + ":saml-provider/" + provider_name
+
             if event['RequestType'] == 'Create':
-              res, resp = create_provider(provider_name, provider_xml)
+              res, provider_arn = create_provider(provider_name, provider_xml)
+              reason = "Creation succeeded"
             elif event['RequestType'] == 'Update':
-              res, resp = update_provider(provider_name, provider_xml)
+              res, reason = update_provider(provider_arn, provider_xml)
             elif event['RequestType'] == 'Delete':
-              res, resp = delete_provider(provider_name)
+              res, reason = delete_provider(provider_arn)
             else:
               res = False
               resp = "Unknown operation: " + event['RequestType']
 
             responseData = {}
-            responseData['Reason'] = resp
+            responseData['Reason'] = reason
             if res:
-              responseData['Data'] = {"Arn": resp}
-              cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData, "ProviderCreator")
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData, provider_arn)
             else:
-              cfnresponse.send(event, context, cfnresponse.FAILED, responseData, "ProviderCreator")
+              cfnresponse.send(event, context, cfnresponse.FAILED, responseData, provider_arn)
 
   LambdaExecutionRole:
     Type: AWS::IAM::Role
