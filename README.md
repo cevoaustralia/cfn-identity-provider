@@ -31,6 +31,30 @@ configured in the `params.json`. It defaults to `MyProvider`
 The `ProviderCreator` custom resource returns two values: a `Message`, which is a plaintext string indicating
 a success or failure message, and an `Arn` which is the ARN of the Identity Provider.
 
+You can use the returned values from the custom resource via the `Fn::GetAtt` or `!GetAtt` intrinsic functions
+of CloudFormation.
+
+For example:
+
+```yaml
+...
+
+  TrustingIdp:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !GetAtt IdentityProvider.Arn
+            Action: sts:AssumeRoleWithSAML
+            Condition:
+              StringEquals:
+                "SAML:aud": "https://signin.aws.amazon.com/saml"
+...
+```
+
 ## Updating the stack
 
 The stack can be updated, though the only changes you can make to the Identity Provider is to change the SAML
