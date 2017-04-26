@@ -28,8 +28,7 @@ configured in the `params.json`. It defaults to `MyProvider`
 
 ## Returned Values from the Custom Resource
 
-The `ProviderCreator` custom resource returns two values: a `Message`, which is a plaintext string indicating
-a success or failure message, and an `Arn` which is the ARN of the Identity Provider.
+The `ProviderCreator` custom resource returns an `Arn` which is the ARN of the Identity Provider.
 
 You can use the returned values from the custom resource via the `Fn::GetAtt` or `!GetAtt` intrinsic functions
 of CloudFormation.
