@@ -1,0 +1,111 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create a SAML identity provider
+
+Parameters:
+  MetadataDocument:
+    Type: String
+    Description: The XML metadata document to use when trusting the Identity Provider
+  SamlProviderName:
+    Type: String
+    Description: The name for your SAML provider in IAM
+    Default: MyProvider
+
+Resources:
+  IdentityProvider:
+    Type: Custom::IdentityProvider
+    Properties:
+      ServiceToken: !GetAtt ProviderCreator.Arn
+      Region: !Ref "AWS::Region"
+      Metadata: !Ref MetadataDocument
+      Name: !Ref SamlProviderName
+
+  ProviderCreator:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python2.7
+      Handler: index.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      Code:
+        ZipFile: !Sub |
+          import boto3
+          import json
+          import cfnresponse
+
+          iam = boto3.client("iam")
+
+          def create_provider(name, doc):
+            try:
+              resp = iam.create_saml_provider(SAMLMetadataDocument=doc,Name=name)
+              return(True, resp['SAMLProviderArn'])
+            except Exception as e:
+              return (False, "Cannot create SAML provider: " + str(e))
+
+          def delete_provider(name):
+            # Need to create the ARN from the name
+            arn = "arn:aws:iam::" + str(${AWS::AccountId}) + ":saml-provider/" + name
+            try:
+              resp = iam.delete_saml_provider(SAMLProviderArn=arn)
+              return (True, "SAML provider with ARN " + arn + " deleted")
+            except Exception as e:
+              return (False, "Cannot delete SAML provider with ARN " + arn + ": " + str(e))
+
+          def update_provider(name, doc):
+            # Need to create the ARN from the name
+            arn = "arn:aws:iam::" + str(${AWS::AccountId}) + ":saml-provider/" + name
+            try:
+              resp = iam.update_saml_provider(SAMLMetadataDocument=doc, SAMLProviderArn=arn)
+              return (True, "SAML provider " + arn + " updated")
+            except Exception as e:
+              return (False, "Cannot update SAML provider " + arn + ": " + str(e))
+
+          def lambda_handler(event, context):
+            provider_xml = event['ResourceProperties']['Metadata']
+            provider_name = event['ResourceProperties']['Name']
+            if event['RequestType'] == 'Create':
+              res, resp = create_provider(provider_name, provider_xml)
+            elif event['RequestType'] == 'Update':
+              res, resp = update_provider(provider_name, provider_xml)
+            elif event['RequestType'] == 'Delete':
+              res, resp = delete_provider(provider_name)
+            else:
+              res = False
+              resp = "Unknown operation: " + event['RequestType']
+
+            responseData = {}
+            if res:
+              responseData['Data'] = {"Arn": resp, "Message": "SAML provider creation succeeded"}
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData, "ProviderCreator")
+            else:
+              responseData['Data'] = {"Message": resp, "Arn": "None"}
+              cfnresponse.send(event, context, cfnresponse.FAILED, responseData, "ProviderCreator")
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iam:*SamlProvider
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
