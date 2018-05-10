@@ -18,7 +18,7 @@ In order to use it, you'll need:
 
 1. Download metadata from your IdP
 1. Make it all be on one line and escape the double-quote (`"`) character:
-   `tr -d '\n' metadata.xml | sed -e 's/"/\"/g' > out.xml`
+   `tr -d '\n' < metadata.xml | sed -e 's/"/\\"/g' > out.xml`
 1. Copy the `out.xml` into the `ParameterValue` field of the `params.json`
 
 ## Configuration
