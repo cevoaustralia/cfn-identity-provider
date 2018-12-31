@@ -68,16 +68,17 @@ Resources:
           def lambda_handler(event, context):
             provider_xml = event['ResourceProperties']['Metadata']
             provider_name = event['ResourceProperties']['Name']
-            # create a default ARN from the name; will be overwritten if we are creating
-            provider_arn = "arn:aws:iam::${AWS::AccountId}:saml-provider/" + provider_name
 
             if event['RequestType'] == 'Create':
               res, provider_arn = create_provider(provider_name, provider_xml)
               reason = "Creation succeeded"
-            elif event['RequestType'] == 'Update':
-              res, reason = update_provider(provider_arn, provider_xml)
-            elif event['RequestType'] == 'Delete':
-              res, reason = delete_provider(provider_arn)
+            elif (event['RequestType'] == 'Update') or (event['RequestType'] == 'Delete'):
+              # create a default ARN from the name
+              provider_arn = "arn:aws:iam::${AWS::AccountId}:saml-provider/" + provider_name
+              if event['RequestType'] == 'Update':
+                res, reason = update_provider(provider_arn, provider_xml)
+              elif event['RequestType'] == 'Delete':
+                res, reason = delete_provider(provider_arn)
             else:
               res = False
               resp = "Unknown operation: " + event['RequestType']
