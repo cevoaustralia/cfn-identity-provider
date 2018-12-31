@@ -74,7 +74,6 @@ Resources:
               reason = "Creation succeeded"
             elif (event['RequestType'] == 'Update') or (event['RequestType'] == 'Delete'):
               # create a default ARN from the name
-              account_id = boto3.client('sts').get_caller_identity().get('Account')
               provider_arn = "arn:aws:iam::${AWS::AccountId}:saml-provider/" + provider_name
               if event['RequestType'] == 'Update':
                 res, reason = update_provider(provider_arn, provider_xml)
