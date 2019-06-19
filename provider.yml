@@ -57,8 +57,6 @@ Resources:
               return (False, "Cannot delete SAML provider with ARN " + arn + ": " + str(e))
 
           def update_provider(arn, doc):
-            # Need to create the ARN from the name
-            arn = "arn:aws:iam::${AWS::AccountId}:saml-provider/" + name
             try:
               resp = iam.update_saml_provider(SAMLMetadataDocument=doc, SAMLProviderArn=arn)
               return (True, "SAML provider " + arn + " updated")
