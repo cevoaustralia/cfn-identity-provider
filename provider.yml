@@ -117,3 +117,8 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: "*"
+
+Outputs:
+  ProviderArn:
+    Description: Arn of the Identity Provider
+    Value: !Ref 'IdentityProvider'
